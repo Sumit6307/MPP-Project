@@ -28,6 +28,7 @@ async function sendButtons(to, bodyText, buttons) {
   try {
     const response = await axios.post(`${BASE_URL}/messages`, {
       messaging_product: 'whatsapp',
+      recipient_type: 'individual',
       to: to,
       type: 'interactive',
       interactive: {
@@ -54,11 +55,11 @@ async function sendList(to, headerText, bodyText, buttonText, sections) {
   try {
     const response = await axios.post(`${BASE_URL}/messages`, {
       messaging_product: 'whatsapp',
+      recipient_type: 'individual',
       to: to,
       type: 'interactive',
       interactive: {
         type: 'list',
-        header: { type: 'text', text: headerText },
         body: { text: bodyText },
         action: {
           button: buttonText,

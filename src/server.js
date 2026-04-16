@@ -1,10 +1,21 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
+// Initialize DB
+require('./db');
 const { handleIncomingMessage } = require('./onboardingLogic');
 
 const app = express();
 app.use(bodyParser.json());
+
+// GLOBAL LOGGER: This will show every message in your terminal!
+app.use((req, res, next) => {
+  if (req.method === 'POST') {
+    console.log(`[${new Date().toLocaleTimeString()}] POST /webhook`);
+    // console.log('Incoming Payload:', JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.originalUrl}`);

@@ -2,7 +2,7 @@ const db = require('./db');
 const { sendText, sendButtons, sendList } = require('./whatsappService');
 const { checkMatches } = require('./matchingEngine');
 
-const DISTRICT_LIST = ['Lucknow', 'Aligarh', 'Kanpur', 'Varanasi', 'Agra', 'Meerut', 'Gorakhpur', 'Bareilly', 'Moradabad', 'Prayagraj'];
+const DISTRICT_LIST = ['Lucknow', 'Aligarh', 'Kanpur', 'Varanasi', 'Agra'];
 
 async function handleIncomingMessage(wa_id, message) {
   let user = db.prepare('SELECT * FROM users WHERE wa_id = ?').get(wa_id);
@@ -17,10 +17,13 @@ async function handleIncomingMessage(wa_id, message) {
   const listId = message.interactive?.list_reply?.id;
 
   if (msgText === 'start over') {
-    db.prepare('UPDATE users SET step = 1, name = NULL, job_post = NULL, cur_district = NULL, cur_block = NULL, consent = 0 WHERE wa_id = ?').run(wa_id);
+    db.prepare('UPDATE users SET step = 1, name = NULL, job_post = NULL, cur_district = NULL, cur_block = NULL, consent = 0, language = \'en\' WHERE wa_id = ?').run(wa_id);
     db.prepare('DELETE FROM preferences WHERE user_id = ?').run(user.id);
     return sendFrame1(wa_id);
   }
+
+  // Safety: If message is interactive, ignore text body to prevent crashes
+  const textBody = message.text?.body || '';
 
   switch (user.step) {
     case 1: // Welcome & Start
@@ -31,7 +34,8 @@ async function handleIncomingMessage(wa_id, message) {
       return sendFrame1(wa_id);
 
     case 2: // Name
-      db.prepare('UPDATE users SET name = ?, step = 3 WHERE wa_id = ?').run(message.text.body, wa_id);
+      if (!textBody) return sendFrame2(wa_id);
+      db.prepare('UPDATE users SET name = ?, step = 3 WHERE wa_id = ?').run(textBody, wa_id);
       return sendFrame3(wa_id);
 
     case 3: // Job Post
@@ -49,36 +53,37 @@ async function handleIncomingMessage(wa_id, message) {
       return sendFrame4(wa_id);
 
     case 5: // Current Block
-      db.prepare('UPDATE users SET cur_block = ?, step = 7 WHERE wa_id = ?').run(message.text.body, wa_id); // Skipping School (Step 6) as per discussion
+      if (!textBody) return sendFrame5(wa_id);
+      db.prepare('UPDATE users SET cur_block = ?, step = 7 WHERE wa_id = ?').run(textBody, wa_id); // Skipping School (Step 6) as per discussion
       return sendFrame7(wa_id);
 
     case 7: // Pref District 1
       if (listId) {
-        db.prepare('INSERT INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(user.id, listId);
+        db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(user.id, listId);
         db.prepare('UPDATE users SET step = 8 WHERE wa_id = ?').run(wa_id);
         return sendFrame8(wa_id);
       }
       return sendFrame7(wa_id);
 
     case 8: // Pref District 2
-      if (buttonId === 'skip_pref_2') {
+      if (buttonId === 'skip_pref_2' || listId === 'skip_pref_2') {
         db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
         return sendFrame10(wa_id);
       }
       if (listId) {
-        db.prepare('INSERT INTO preferences (user_id, district_name, priority) VALUES (?, ?, 2)').run(user.id, listId);
+        db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 2)').run(user.id, listId);
         db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
         return sendFrame9(wa_id);
       }
       return sendFrame8(wa_id);
 
     case 9: // Pref District 3
-      if (buttonId === 'skip_pref_3') {
+      if (buttonId === 'skip_pref_3' || listId === 'skip_pref_3') {
         db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
         return sendFrame10(wa_id);
       }
       if (listId) {
-        db.prepare('INSERT INTO preferences (user_id, district_name, priority) VALUES (?, ?, 3)').run(user.id, listId);
+        db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 3)').run(user.id, listId);
         db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
         return sendFrame10(wa_id);
       }
@@ -87,7 +92,7 @@ async function handleIncomingMessage(wa_id, message) {
     case 10: // Consent
       if (buttonId === 'yes_agree') {
         db.prepare('UPDATE users SET consent = 1, step = 11 WHERE wa_id = ?').run(wa_id);
-        await sendFrame11(wa_id, user.id);
+        await sendFrame11(wa_id);
         await checkMatches(user.id);
         return;
       } else if (buttonId === 'no_disagree') {
@@ -119,7 +124,7 @@ function sendFrame3(to) {
 }
 
 function sendFrame4(to) {
-  return sendList(to, "Step 3 of 9", "Select your current district.", "View Districts", [
+  return sendList(to, null, "Select your current district.", "View Districts", [
     { title: "Districts", rows: DISTRICT_LIST.map(d => ({ id: d, title: d })) }
   ]);
 }
@@ -129,22 +134,28 @@ function sendFrame5(to) {
 }
 
 function sendFrame7(to) {
-  return sendList(to, "Step 6 of 9", "Enter your 1st preferred district for transfer.", "View Districts", [
+  return sendList(to, null, "Enter your 1st preferred district for transfer.", "View Districts", [
     { title: "Districts", rows: DISTRICT_LIST.map(d => ({ id: d, title: d })) }
   ]);
 }
 
 function sendFrame8(to) {
-  return sendList(to, "Step 7 of 9", "Enter your 2nd preferred district.\n\nOr click SKIP.", "View Districts", [
-    { title: "Actions", rows: [{ id: 'skip_2', title: 'SKIP' }] },
-    { title: "Districts", rows: DISTRICT_LIST.map(d => ({ id: d, title: d })) }
+  const rows = [
+    { id: 'skip_pref_2', title: 'SKIP' },
+    ...DISTRICT_LIST.map(d => ({ id: d, title: d }))
+  ];
+  return sendList(to, null, "Enter your 2nd preferred district.\n\nOr click SKIP.", "View Districts", [
+    { title: "Options", rows: rows }
   ]);
 }
 
 function sendFrame9(to) {
-  return sendList(to, "Step 8 of 9", "Enter your 3rd preferred district.\n\nOr click SKIP.", "View Districts", [
-    { title: "Actions", rows: [{ id: 'skip_3', title: 'SKIP' }] },
-    { title: "Districts", rows: DISTRICT_LIST.map(d => ({ id: d, title: d })) }
+  const rows = [
+    { id: 'skip_pref_3', title: 'SKIP' },
+    ...DISTRICT_LIST.map(d => ({ id: d, title: d }))
+  ];
+  return sendList(to, null, "Enter your 3rd preferred district.\n\nOr click SKIP.", "View Districts", [
+    { title: "Options", rows: rows }
   ]);
 }
 
@@ -155,12 +166,14 @@ function sendFrame10(to) {
   ]);
 }
 
-async function sendFrame11(to, userId) {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-  const prefs = db.prepare('SELECT district_name FROM preferences WHERE user_id = ? ORDER BY priority').all(userId);
+async function sendFrame11(to) {
+  const user = db.prepare('SELECT * FROM users WHERE wa_id = ?').get(to);
+  if (!user) return;
+  const prefs = db.prepare('SELECT district_name FROM preferences WHERE user_id = ? ORDER BY priority').all(user.id);
   
   const summary = `✅ Profile created.\n\n*Summary:*\n• Name: ${user.name}\n• Job post: ${user.job_post}\n• Current posting: ${user.cur_district} / ${user.cur_block}\n• Preferred districts: ${prefs.map(p => p.district_name).join(', ')}\n\nWe’ll notify you when relevant matches are available.\n\nCommands: EDIT | START OVER`;
   
+  console.log(`Sending Summary to ${to}...`);
   await sendText(to, summary);
 }
 

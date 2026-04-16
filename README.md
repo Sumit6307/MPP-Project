@@ -29,6 +29,25 @@ npx ngrok http 127.0.0.1:4000
 ```
 Copy the URL (e.g., `https://xxxx.ngrok-free.dev`) and use it in your Meta setup.
 
+---
+
+### **📈 How to See Your Matches**
+The bot finds matches automatically, but you can view the full list anytime:
+1.  **Direct Tool**: Double-click **`3_VIEW_MATCHES.bat`**. 
+    *   This shows a clean list of all people who have been paired up!
+2.  **Database**: Open `mpp.db` using any SQLite browser.
+
+---
+
+### **🧪 How to Test a "Match" (With 1 Phone)**
+Since meta sandbox restricts you to your own number, follow this to see a match:
+1.  Run **`5_FORCE_TEST_MATCH.bat`** (Adds a fake partner named Raj).
+2.  On WhatsApp, click **"START OVER"**.
+3.  Register as a user in **Lucknow** wanting **Varanasi**.
+4.  Finish onboarding.
+5.  **Check WhatsApp**: You will receive a notification about Raj!
+6.  Run **`3_VIEW_MATCHES.bat`** to see the new match in the list.
+
 ### 3. CONFIGURATION IN META PORTAL
 1.  Go to the [Meta Developer Portal](https://developers.facebook.com/).
 2.  Navigate to **WhatsApp > Configuration**.
