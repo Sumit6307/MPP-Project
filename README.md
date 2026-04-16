@@ -4,17 +4,30 @@ Mutual Partner Platform is a job-swap enablement platform designed for governmen
 
 ## 🚀 How to Run the Bot
 
-I have created simple shortcuts for you to start the project:
+### **Method 1: Shortcut Method (Super Easy)**
+1.  Open your `MPP` folder in Windows.
+2.  Double-click **`1_START_SERVER.bat`**. (Wait for "SUCCESS: Server is running on port 4000").
+3.  Double-click **`2_START_TUNNEL.bat`**. (Copy the "Forwarding" link).
 
-### 1. START THE SERVER
-Double-click **`1_START_SERVER.bat`**.
-*   This starts the Node.js backend.
-*   Wait until it says: `✅ SUCCESS: Server is running on port 4000`.
+---
 
-### 2. START THE TUNNEL (NGROK)
-Double-click **`2_START_TUNNEL.bat`**.
-*   This makes your local machine reachable by Meta.
-*   **Copy the "Forwarding" URL** (e.g., `https://xxxx.ngrok-free.app`).
+### **Method 2: Command Line Method (For Developers)**
+If you prefer using the terminal, follow these steps:
+
+**1. Start the Bot Server**
+Open a terminal and run:
+```powershell
+cd MPP
+node src/server.js
+```
+
+**2. Start the Internet Tunnel (In a NEW terminal)**
+Open a **second** terminal and run:
+```powershell
+cd MPP
+npx ngrok http 127.0.0.1:4000
+```
+Copy the URL (e.g., `https://xxxx.ngrok-free.dev`) and use it in your Meta setup.
 
 ### 3. CONFIGURATION IN META PORTAL
 1.  Go to the [Meta Developer Portal](https://developers.facebook.com/).
