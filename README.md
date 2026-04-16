@@ -59,7 +59,3 @@ Once a user completes onboarding, the engine automatically checks for **2-way mu
 *   `src/db.js`: Database schema and connection.
 *   `src/whatsappService.js`: Helper functions for Interactive Buttons and Lists.
 
----
-
-## ⚠️ Important Note
-In development mode, ensure your test recipient phone number is added to the **"Allowed List"** in the Meta Dashboard under **WhatsApp > API Setup**.
