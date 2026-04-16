@@ -22,15 +22,19 @@ try {
             cur_dist: 'Varanasi', cur_block: 'Kashi', pref: 'Lucknow' 
         },
         { 
-            wa_id: 'test_333', name: 'Vikram Singh', job: 'Junior', 
+            wa_id: 'test_333', name: 'Vikram Singh', job: 'AT-Upper', 
             cur_dist: 'Agra', cur_block: 'Etmadpur', pref: 'Varanasi' 
+        },
+        { 
+            wa_id: 'test_444', name: 'Neha Verma', job: 'AT-Primary', 
+            cur_dist: 'Kanpur', cur_block: 'Kalyanpur', pref: 'Lucknow' 
         }
     ];
 
     testUsers.forEach(u => {
         const res = db.prepare(`
-            INSERT INTO users (wa_id, name, job_post, cur_district, cur_block, step, consent)
-            VALUES (?, ?, ?, ?, ?, 11, 1)
+            INSERT INTO users (wa_id, name, job_post, cur_district, cur_block, step, consent, language)
+            VALUES (?, ?, ?, ?, ?, 11, 1, 'en')
         `).run(u.wa_id, u.name, u.job, u.cur_dist, u.cur_block);
 
         db.prepare(`

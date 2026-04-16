@@ -33,11 +33,15 @@ async function checkMatches(userId) {
 }
 
 async function notifyMatch(userA, userB) {
-  const msgA = `🎉 *Mutual Match Found!*\n\nWe found a swap partner for you:\n• Name: ${userB.name}\n• District: ${userB.cur_district}\n• Block: ${userB.cur_block}\n• Phone: ${userB.wa_id}\n\nYou can now contact them directly.`;
-  const msgB = `🎉 *Mutual Match Found!*\n\nWe found a swap partner for you:\n• Name: ${userA.name}\n• District: ${userA.cur_district}\n• Block: ${userA.cur_block}\n• Phone: ${userA.wa_id}\n\nYou can now contact them directly.`;
+  const getMsg = (lang, partner) => {
+    if (lang === 'hi') {
+      return `🎉 *म्यूचुअल मैच मिल गया!*\n\nहमें आपके लिए एक पार्टनर मिला है:\n• नाम: ${partner.name}\n• जिला: ${partner.cur_district}\n• ब्लॉक: ${partner.cur_block}\n• फोन: ${partner.wa_id}\n\nअब आप उनसे सीधे संपर्क कर सकते हैं।`;
+    }
+    return `🎉 *Mutual Match Found!*\n\nWe found a swap partner for you:\n• Name: ${partner.name}\n• District: ${partner.cur_district}\n• Block: ${partner.cur_block}\n• Phone: ${partner.wa_id}\n\nYou can now contact them directly.`;
+  };
 
-  await sendText(userA.wa_id, msgA);
-  await sendText(userB.wa_id, msgB);
+  await sendText(userA.wa_id, getMsg(userA.language, userB));
+  await sendText(userB.wa_id, getMsg(userB.language, userA));
 }
 
 module.exports = { checkMatches };
