@@ -14,20 +14,20 @@ try {
 
     const testUsers = [
         { 
-            wa_id: 'test_111', name: 'Amit Sharma', job: 'AT-Primary', 
-            cur_dist: 'Lucknow', cur_block: 'Malihabad', pref: 'Kanpur' 
+            wa_id: 'test_111', name: 'Sumit', job: 'AT-Upper', 
+            cur_dist: 'Aligarh', cur_block: 'Khair', pref: 'Mathura' 
         },
         { 
-            wa_id: 'test_222', name: 'Sonia Gupta', job: 'HM-Primary', 
-            cur_dist: 'Varanasi', cur_block: 'Kashi', pref: 'Lucknow' 
+            wa_id: 'test_222', name: 'Amit Singh', job: 'AT-Upper', 
+            cur_dist: 'Mathura', cur_block: 'Raya', pref: 'Aligarh' 
         },
         { 
-            wa_id: 'test_333', name: 'Vikram Singh', job: 'AT-Upper', 
-            cur_dist: 'Agra', cur_block: 'Etmadpur', pref: 'Varanasi' 
+            wa_id: 'test_333', name: 'Neha Sharma', job: 'AT-Primary', 
+            cur_dist: 'Gautam Buddha Nagar', cur_block: 'Jewar', pref: 'Hapur' 
         },
         { 
-            wa_id: 'test_444', name: 'Neha Verma', job: 'AT-Primary', 
-            cur_dist: 'Kanpur', cur_block: 'Kalyanpur', pref: 'Lucknow' 
+            wa_id: 'test_444', name: 'Vikram Verma', job: 'AT-Primary', 
+            cur_dist: 'Hapur', cur_block: 'Simbhawali', pref: 'Gautam Buddha Nagar' 
         }
     ];
 
@@ -47,10 +47,11 @@ try {
     db.prepare("PRAGMA foreign_keys = ON").run();
 
     console.log("====================================================");
-    console.log("✅ SUCCESS: 3 Profiles Added!");
-    console.log("1. Amit Sharma (Lucknow -> Kanpur)");
-    console.log("2. Sonia Gupta (Varanasi -> Lucknow)");
-    console.log("3. Vikram Singh (Agra -> Varanasi)");
+    console.log("✅ SUCCESS: 4 Real Profiles Added!");
+    console.log("1. Sumit (Aligarh -> Mathura)");
+    console.log("2. Amit (Mathura -> Aligarh) [MUTUAL]");
+    console.log("3. Neha (GB Nagar -> Hapur)");
+    console.log("4. Vikram (Hapur -> GB Nagar) [MUTUAL]");
     console.log("\nNOW: Open DB Browser for SQLite and click REFRESH!");
     console.log("====================================================");
 

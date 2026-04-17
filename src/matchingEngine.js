@@ -44,4 +44,25 @@ async function notifyMatch(userA, userB) {
   await sendText(userB.wa_id, getMsg(userB.language, userA));
 }
 
-module.exports = { checkMatches };
+async function getUserMatches(userId, lang = 'en') {
+  const matches = db.prepare(`
+    SELECT u.* FROM matches m
+    JOIN users u ON (m.user_a_id = u.id OR m.user_b_id = u.id)
+    WHERE (m.user_a_id = ? OR m.user_b_id = ?) AND u.id != ?
+  `).all(userId, userId, userId);
+
+  if (matches.length === 0) {
+    return lang === 'hi' ? "अभी तक कोई म्यूचुअल मैच नहीं मिला है।" : "No mutual matches found yet.";
+  }
+
+  let text = lang === 'hi' ? "🤝 *आपके म्यूचुअल मैच:*\n\n" : "🤝 *Your Mutual Matches:*\n\n";
+  matches.forEach((m, i) => {
+    text += `${i + 1}. *${m.name}*\n`;
+    text += `📍 ${m.cur_district} / ${m.cur_block}\n`;
+    text += `📞 ${m.wa_id}\n\n`;
+  });
+
+  return text;
+}
+
+module.exports = { checkMatches, getUserMatches };
