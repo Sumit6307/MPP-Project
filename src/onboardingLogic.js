@@ -38,7 +38,14 @@ const MESSAGES = {
     block_label: "Blocks",
     see_more: "See More Blocks...",
     back: "Go Back",
-    none_selected: "None selected"
+    none_selected: "None selected",
+    edit_select: "What would you like to edit?",
+    edit_job: "Job Post",
+    edit_cur_dist: "Current District",
+    edit_cur_block: "Current Block",
+    edit_pref_1: "Preferred District 1",
+    edit_pref_2: "Preferred District 2",
+    edit_pref_3: "Preferred District 3"
   },
   hi: {
     welcome: "नमस्ते 🙏 MPP में आपका स्वागत है।\n\nMPP कर्मचारियों को उनके पसंदीदा जिलों में स्थानांतरण के लिए उम्मीदवार खोजने में मदद करता है!\n\nप्रोफ़ाइल बनाने में ~2-3 मिनट लगते हैं।",
@@ -65,7 +72,14 @@ const MESSAGES = {
     block_label: "ब्लॉक",
     see_more: "अगले ब्लॉक देखें...",
     back: "पीछे जाएं",
-    none_selected: "कोई नहीं"
+    none_selected: "कोई नहीं",
+    edit_select: "आप क्या संशोधित करना चाहते हैं?",
+    edit_job: "पद / पदनाम",
+    edit_cur_dist: "वर्तमान जिला",
+    edit_cur_block: "वर्तमान ब्लॉक",
+    edit_pref_1: "पसंदीदा जिला 1",
+    edit_pref_2: "पसंदीदा जिला 2",
+    edit_pref_3: "पसंदीदा जिला 3"
   }
 };
 async function handleIncomingMessage(wa_id, message) {
@@ -87,10 +101,8 @@ async function handleIncomingMessage(wa_id, message) {
   }
 
   if (msgText === 'edit' || buttonId === 'edit') {
-    db.prepare('UPDATE users SET step = 1 WHERE wa_id = ?').run(wa_id);
-    const msg = user.language === 'hi' ? "प्रोफ़ाइल संपादन शुरू हो गया है। कृपया अपने विवरण फिर से दर्ज करें।" : "Profile editing started. Please re-enter your details.";
-    await sendText(wa_id, msg);
-    return sendFrame1(wa_id);
+    db.prepare('UPDATE users SET step = 101, is_editing = 1 WHERE wa_id = ?').run(wa_id);
+    return sendEditMenu(wa_id, user.language);
   }
 
   if (buttonId === 'view_matches') {
@@ -111,12 +123,22 @@ async function handleIncomingMessage(wa_id, message) {
 
     case 2: // Enter Name
       if (!textBody) return sendFrame2(wa_id, lang);
-      db.prepare('UPDATE users SET name = ?, step = 3 WHERE wa_id = ?').run(textBody, wa_id);
+      db.prepare('UPDATE users SET name = ? WHERE wa_id = ?').run(textBody, wa_id);
+      if (user.is_editing) {
+        db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+        return sendFrame11(wa_id, lang);
+      }
+      db.prepare('UPDATE users SET step = 3 WHERE wa_id = ?').run(wa_id);
       return sendFrame3(wa_id, lang);
 
     case 3: // Select Designation
       if (listId) {
-        db.prepare('UPDATE users SET job_post = ?, step = 4 WHERE wa_id = ?').run(listId, wa_id);
+        db.prepare('UPDATE users SET job_post = ? WHERE wa_id = ?').run(listId, wa_id);
+        if (user.is_editing) {
+          db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          return sendFrame11(wa_id, lang);
+        }
+        db.prepare('UPDATE users SET step = 4 WHERE wa_id = ?').run(wa_id);
         return sendFrame4(wa_id, lang);
       }
       return sendFrame3(wa_id, lang);
@@ -134,7 +156,12 @@ async function handleIncomingMessage(wa_id, message) {
           const page = parseInt(listId.split('_')[2]);
           return sendFrame5(wa_id, lang, user.cur_district, page);
         }
-        db.prepare('UPDATE users SET cur_block = ?, step = 7 WHERE wa_id = ?').run(listId, wa_id);
+        db.prepare('UPDATE users SET cur_block = ? WHERE wa_id = ?').run(listId, wa_id);
+        if (user.is_editing) {
+          db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          return sendFrame11(wa_id, lang);
+        }
+        db.prepare('UPDATE users SET step = 7 WHERE wa_id = ?').run(wa_id);
         return sendFrame7(wa_id, lang);
       }
       return sendFrame5(wa_id, lang, user.cur_district, 0);
@@ -142,36 +169,50 @@ async function handleIncomingMessage(wa_id, message) {
     case 7: // Preferred District 1
       if (listId) {
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(user.id, listId);
+        if (user.is_editing) {
+          db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          return sendFrame11(wa_id, lang);
+        }
         db.prepare('UPDATE users SET step = 8 WHERE wa_id = ?').run(wa_id);
         return sendFrame8(wa_id, lang);
       }
       return sendFrame7(wa_id, lang);
 
     case 8: // Preferred District 2 (Ask/Select)
-      if (buttonId === 'skip_pref_2') {
-        db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
-        return sendFrame9(wa_id, lang);
-      }
-      if (buttonId === 'select_pref_2') {
-        return sendFrame8b(wa_id, lang);
-      }
       if (listId) {
+        if (listId === 'skip_pref_2') {
+          if (user.is_editing) {
+            db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+            return sendFrame11(wa_id, lang);
+          }
+          db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
+          return sendFrame9(wa_id, lang);
+        }
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 2)').run(user.id, listId);
+        if (user.is_editing) {
+          db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          return sendFrame11(wa_id, lang);
+        }
         db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
         return sendFrame9(wa_id, lang);
       }
       return sendFrame8(wa_id, lang);
 
     case 9: // Preferred District 3 (Ask/Select)
-      if (buttonId === 'skip_pref_3') {
-        db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
-        return sendFrame10(wa_id, lang);
-      }
-      if (buttonId === 'select_pref_3') {
-        return sendFrame9b(wa_id, lang);
-      }
       if (listId) {
+        if (listId === 'skip_pref_3') {
+          if (user.is_editing) {
+            db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+            return sendFrame11(wa_id, lang);
+          }
+          db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
+          return sendFrame10(wa_id, lang);
+        }
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 3)').run(user.id, listId);
+        if (user.is_editing) {
+          db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          return sendFrame11(wa_id, lang);
+        }
         db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
         return sendFrame10(wa_id, lang);
       }
@@ -180,6 +221,9 @@ async function handleIncomingMessage(wa_id, message) {
     case 10: // Consent & Confirmation
       if (buttonId === 'yes_agree') {
         db.prepare('UPDATE users SET consent = 1, step = 11 WHERE wa_id = ?').run(wa_id);
+        if (user.is_editing) {
+           db.prepare('UPDATE users SET is_editing = 0 WHERE wa_id = ?').run(wa_id);
+        }
         await sendFrame11(wa_id, lang);
         await checkMatches(user.id);
         return;
@@ -188,6 +232,33 @@ async function handleIncomingMessage(wa_id, message) {
         return sendText(wa_id, msg);
       }
       return sendFrame10(wa_id, lang);
+
+    case 101: // Edit Selection
+      if (listId === 'edit_job') {
+        db.prepare('UPDATE users SET step = 3 WHERE wa_id = ?').run(wa_id);
+        return sendFrame3(wa_id, lang);
+      }
+      if (listId === 'edit_cur_dist') {
+        db.prepare('UPDATE users SET step = 4 WHERE wa_id = ?').run(wa_id);
+        return sendFrame4(wa_id, lang);
+      }
+      if (listId === 'edit_cur_block') {
+        db.prepare('UPDATE users SET step = 5 WHERE wa_id = ?').run(wa_id);
+        return sendFrame5(wa_id, lang, user.cur_district, 0);
+      }
+      if (listId === 'edit_pref_1') {
+        db.prepare('UPDATE users SET step = 7 WHERE wa_id = ?').run(wa_id);
+        return sendFrame7(wa_id, lang);
+      }
+      if (listId === 'edit_pref_2') {
+        db.prepare('UPDATE users SET step = 8 WHERE wa_id = ?').run(wa_id);
+        return sendFrame8(wa_id, lang);
+      }
+      if (listId === 'edit_pref_3') {
+        db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
+        return sendFrame9(wa_id, lang);
+      }
+      return sendEditMenu(wa_id, lang);
 
     default:
       const defaultMsg = lang === 'hi' ? "नमस्ते! अपनी प्रोफ़ाइल देखने के लिए VIEW PROFILE लिखें या शुरू से शुरू करने के लिए START OVER टाइप करें।" : "Welcome back! Type VIEW PROFILE or START OVER.";
@@ -253,28 +324,18 @@ function sendFrame7(to, lang) {
 }
 
 function sendFrame8(to, lang) {
-  return sendButtons(to, MESSAGES[lang].pref_2, [
-    { id: 'select_pref_2', title: MESSAGES[lang].add_dist },
-    { id: 'skip_pref_2', title: MESSAGES[lang].skip }
-  ]);
-}
-
-function sendFrame8b(to, lang) {
+  const rows = DISTRICT_LIST.map(d => ({ id: d, title: d }));
+  rows.push({ id: 'skip_pref_2', title: MESSAGES[lang].skip });
   return sendList(to, null, MESSAGES[lang].pref_2, MESSAGES[lang].view_dist, [
-    { title: MESSAGES[lang].dist_label, rows: DISTRICT_LIST.map(d => ({ id: d, title: d })) }
+    { title: MESSAGES[lang].dist_label, rows: rows }
   ]);
 }
 
 function sendFrame9(to, lang) {
-  return sendButtons(to, MESSAGES[lang].pref_3, [
-    { id: 'select_pref_3', title: MESSAGES[lang].add_dist },
-    { id: 'skip_pref_3', title: MESSAGES[lang].skip }
-  ]);
-}
-
-function sendFrame9b(to, lang) {
+  const rows = DISTRICT_LIST.map(d => ({ id: d, title: d }));
+  rows.push({ id: 'skip_pref_3', title: MESSAGES[lang].skip });
   return sendList(to, null, MESSAGES[lang].pref_3, MESSAGES[lang].view_dist, [
-    { title: MESSAGES[lang].dist_label, rows: DISTRICT_LIST.map(d => ({ id: d, title: d })) }
+    { title: MESSAGES[lang].dist_label, rows: rows }
   ]);
 }
 
@@ -282,6 +343,20 @@ function sendFrame10(to, lang) {
   return sendButtons(to, MESSAGES[lang].consent, [
     { id: 'yes_agree', title: MESSAGES[lang].agree },
     { id: 'no_disagree', title: MESSAGES[lang].disagree }
+  ]);
+}
+
+function sendEditMenu(to, lang) {
+  const options = [
+    { id: 'edit_job', title: MESSAGES[lang].edit_job },
+    { id: 'edit_cur_dist', title: MESSAGES[lang].edit_cur_dist },
+    { id: 'edit_cur_block', title: MESSAGES[lang].edit_cur_block },
+    { id: 'edit_pref_1', title: MESSAGES[lang].edit_pref_1 },
+    { id: 'edit_pref_2', title: MESSAGES[lang].edit_pref_2 },
+    { id: 'edit_pref_3', title: MESSAGES[lang].edit_pref_3 }
+  ];
+  return sendList(to, null, MESSAGES[lang].edit_select, MESSAGES[lang].opt_label, [
+    { title: MESSAGES[lang].opt_label, rows: options }
   ]);
 }
 
