@@ -16,6 +16,9 @@ db.exec(`
     language TEXT DEFAULT 'en',
     consent INTEGER DEFAULT 0, -- 0 for No, 1 for Yes
     is_editing INTEGER DEFAULT 0,
+    pref_dist_1 TEXT,
+    pref_dist_2 TEXT,
+    pref_dist_3 TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 

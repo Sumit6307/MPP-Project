@@ -24,6 +24,10 @@ db.exec(`
     step INTEGER DEFAULT 1,
     language TEXT DEFAULT 'en',
     consent INTEGER DEFAULT 0,
+    is_editing INTEGER DEFAULT 0,
+    pref_dist_1 TEXT,
+    pref_dist_2 TEXT,
+    pref_dist_3 TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 

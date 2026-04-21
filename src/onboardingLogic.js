@@ -171,6 +171,7 @@ async function handleIncomingMessage(wa_id, message) {
     case 7: // Preferred District 1
       if (listId) {
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(user.id, listId);
+        db.prepare('UPDATE users SET pref_dist_1 = ? WHERE wa_id = ?').run(listId, wa_id);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
           await checkMatches(user.id);
@@ -193,6 +194,7 @@ async function handleIncomingMessage(wa_id, message) {
           return sendFrame9(wa_id, lang);
         }
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 2)').run(user.id, listId);
+        db.prepare('UPDATE users SET pref_dist_2 = ? WHERE wa_id = ?').run(listId, wa_id);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
           await checkMatches(user.id);
@@ -215,6 +217,7 @@ async function handleIncomingMessage(wa_id, message) {
           return sendFrame10(wa_id, lang);
         }
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 3)').run(user.id, listId);
+        db.prepare('UPDATE users SET pref_dist_3 = ? WHERE wa_id = ?').run(listId, wa_id);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
           await checkMatches(user.id);
