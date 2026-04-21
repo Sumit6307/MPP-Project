@@ -45,21 +45,38 @@ async function notifyMatch(userA, userB) {
 }
 
 async function getUserMatches(userId, lang = 'en') {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  if (!user) return "";
+
   const matches = db.prepare(`
-    SELECT u.* FROM matches m
+    SELECT DISTINCT u.*, p2.priority FROM matches m
     JOIN users u ON (m.user_a_id = u.id OR m.user_b_id = u.id)
-    WHERE (m.user_a_id = ? OR m.user_b_id = ?) AND u.id != ?
-  `).all(userId, userId, userId);
+    JOIN preferences p ON u.id = p.user_id
+    JOIN preferences p2 ON p2.user_id = ?
+    WHERE (m.user_a_id = ? OR m.user_b_id = ?) 
+    AND u.id != ?
+    AND u.cur_district = p2.district_name
+    AND p.district_name = ?
+    AND u.job_post = ?
+    AND u.consent = 1
+    ORDER BY p2.priority ASC
+  `).all(userId, userId, userId, userId, user.cur_district, user.job_post);
 
   if (matches.length === 0) {
     return lang === 'hi' ? "अभी तक कोई म्यूचुअल मैच नहीं मिला है।" : "No mutual matches found yet.";
   }
 
-  let text = lang === 'hi' ? "🤝 *आपके म्यूचुअल मैच:*\n\n" : "🤝 *Your Mutual Matches:*\n\n";
+  const labels = lang === 'hi' ? 
+    { phone: 'फोन', post: 'पद / पदनाम', posting: 'तैनाती', choice: 'प्राथमिकता', level: 'पसंद' } :
+    { phone: 'Phone', post: 'Job Post', posting: 'Posting', choice: 'Choice', level: 'Preference' };
+
+  let text = lang === 'hi' ? `🤝 *आपके म्यूचुअल मैच (${matches.length}):*\n\n` : `🤝 *Your Mutual Matches (${matches.length}):*\n\n`;
   matches.forEach((m, i) => {
     text += `${i + 1}. *${m.name}*\n`;
-    text += `📍 ${m.cur_district} / ${m.cur_block}\n`;
-    text += `📞 ${m.wa_id}\n\n`;
+    text += `📞 ${labels.phone}: ${m.wa_id}\n`;
+    text += `💼 ${labels.post}: ${m.job_post}\n`;
+    text += `📍 ${labels.posting}: ${m.cur_district} / ${m.cur_block}\n`;
+    text += `⭐ ${labels.level}: #${m.priority} ${labels.choice}\n\n`;
   });
 
   return text;

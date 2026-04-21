@@ -1,50 +1,40 @@
-const Database = require('better-sqlite3');
-const db = new Database('mpp.db');
+const db = require('./db');
 
-console.log("====================================================");
-console.log("   MPP FORCE TEST DATA SEEDER (v3)");
-console.log("====================================================\n");
+function seed() {
+  console.log('--- SEEDING PHASE 1 TEST DATA ---');
+  
+  // Clean target test user (Suo)
+  const targetWaId = '919999999999';
+  db.prepare('DELETE FROM users WHERE wa_id = ?').run(targetWaId);
+  db.prepare('INSERT INTO users (wa_id, name, job_post, cur_district, cur_block, step, language, consent) VALUES (?, ?, ?, ?, ?, 11, ?, 1)')
+    .run(targetWaId, 'Suo', 'HM-Primary', 'Bulandshahr', 'Danpur', 'en');
+  
+  const userA = db.prepare('SELECT id FROM users WHERE wa_id = ?').get(targetWaId);
+  db.prepare('DELETE FROM preferences WHERE user_id = ?').run(userA.id);
+  db.prepare('INSERT INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(userA.id, 'Hapur');
+  db.prepare('INSERT INTO preferences (user_id, district_name, priority) VALUES (?, ?, 2)').run(userA.id, 'Aligarh');
 
-const fakeUserWaId = "919999999999"; 
+  // Create 3 Partners who match Suo
+  const partners = [
+    { name: 'Raj (Match 1)', wa: '911111111111', dist: 'Hapur', block: 'Garh', want: 'Bulandshahr' },
+    { name: 'Amit (Match 2)', wa: '912222222222', dist: 'Aligarh', block: 'Khair', want: 'Bulandshahr' },
+    { name: 'Vijay (Match 3)', wa: '913333333333', dist: 'Hapur', block: 'Simbhawali', want: 'Bulandshahr' }
+  ];
 
-try {
-    // 1. Temporarily disable foreign keys to allow complete cleanup
-    db.prepare("PRAGMA foreign_keys = OFF").run();
-    console.log(">>> DATABASE UNLOCKED.");
+  partners.forEach(p => {
+    db.prepare('DELETE FROM users WHERE wa_id = ?').run(p.wa);
+    db.prepare('INSERT INTO users (wa_id, name, job_post, cur_district, cur_block, step, language, consent) VALUES (?, ?, ?, ?, ?, 11, ?, 1)')
+      .run(p.wa, p.name, 'HM-Primary', p.dist, p.block, 'hi');
+    
+    const u = db.prepare('SELECT id FROM users WHERE wa_id = ?').get(p.wa);
+    db.prepare('DELETE FROM preferences WHERE user_id = ?').run(u.id);
+    db.prepare('INSERT INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(u.id, p.want);
 
-    // 2. Wipe ALL old test data
-    console.log(">>> CLEANING UP ALL TEST RECORDS...");
-    db.prepare("DELETE FROM matches WHERE user_a_id IN (SELECT id FROM users WHERE wa_id = ?)").run(fakeUserWaId);
-    db.prepare("DELETE FROM matches WHERE user_b_id IN (SELECT id FROM users WHERE wa_id = ?)").run(fakeUserWaId);
-    db.prepare("DELETE FROM preferences WHERE user_id IN (SELECT id FROM users WHERE wa_id = ?)").run(fakeUserWaId);
-    db.prepare("DELETE FROM users WHERE wa_id = ?").run(fakeUserWaId);
+    // Record the match in matches table (simulating checkMatches)
+    db.prepare('INSERT OR IGNORE INTO matches (user_a_id, user_b_id) VALUES (?, ?)').run(userA.id, u.id);
+  });
 
-    // 3. Insert fresh 'Raj'
-    console.log(">>> INSERTING FAKE PARTNER 'RAJ'...");
-    const result = db.prepare(`
-        INSERT INTO users (wa_id, name, job_post, cur_district, cur_block, step, consent)
-        VALUES (?, 'Raj Kumar', 'HM-Primary', 'Varanasi', 'Sadara', 11, 1)
-    `).run(fakeUserWaId);
-
-    const newUserId = result.lastInsertRowid;
-
-    db.prepare(`
-        INSERT INTO preferences (user_id, district_name, priority)
-        VALUES (?, 'Lucknow', 1)
-    `).run(newUserId);
-
-    // 4. Re-enable foreign keys
-    db.prepare("PRAGMA foreign_keys = ON").run();
-    console.log(">>> DATABASE LOCKED & SECURED.");
-
-    console.log("\n====================================================");
-    console.log("✅ SUCCESS: 'Raj' is now waiting for you in Varanasi!");
-    console.log("====================================================");
-    console.log("NOW: Go to WhatsApp and register as Su in LUCKNOW");
-    console.log("and select VARANASI as your preference.");
-    console.log("====================================================");
-
-} catch (err) {
-    db.prepare("PRAGMA foreign_keys = ON").run();
-    console.error("\n❌ ERROR:", err.message);
+  console.log('✅ Seeded 3 Mutual Matches for "Suo" (Hapur/Aligarh)');
 }
+
+seed();

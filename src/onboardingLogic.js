@@ -136,6 +136,7 @@ async function handleIncomingMessage(wa_id, message) {
         db.prepare('UPDATE users SET job_post = ? WHERE wa_id = ?').run(listId, wa_id);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          await checkMatches(user.id);
           return sendFrame11(wa_id, lang);
         }
         db.prepare('UPDATE users SET step = 4 WHERE wa_id = ?').run(wa_id);
@@ -159,6 +160,7 @@ async function handleIncomingMessage(wa_id, message) {
         db.prepare('UPDATE users SET cur_block = ? WHERE wa_id = ?').run(listId, wa_id);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          await checkMatches(user.id);
           return sendFrame11(wa_id, lang);
         }
         db.prepare('UPDATE users SET step = 7 WHERE wa_id = ?').run(wa_id);
@@ -171,6 +173,7 @@ async function handleIncomingMessage(wa_id, message) {
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 1)').run(user.id, listId);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          await checkMatches(user.id);
           return sendFrame11(wa_id, lang);
         }
         db.prepare('UPDATE users SET step = 8 WHERE wa_id = ?').run(wa_id);
@@ -183,6 +186,7 @@ async function handleIncomingMessage(wa_id, message) {
         if (listId === 'skip_pref_2') {
           if (user.is_editing) {
             db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+            await checkMatches(user.id);
             return sendFrame11(wa_id, lang);
           }
           db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
@@ -191,6 +195,7 @@ async function handleIncomingMessage(wa_id, message) {
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 2)').run(user.id, listId);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          await checkMatches(user.id);
           return sendFrame11(wa_id, lang);
         }
         db.prepare('UPDATE users SET step = 9 WHERE wa_id = ?').run(wa_id);
@@ -203,6 +208,7 @@ async function handleIncomingMessage(wa_id, message) {
         if (listId === 'skip_pref_3') {
           if (user.is_editing) {
             db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+            await checkMatches(user.id);
             return sendFrame11(wa_id, lang);
           }
           db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
@@ -211,6 +217,7 @@ async function handleIncomingMessage(wa_id, message) {
         db.prepare('INSERT OR REPLACE INTO preferences (user_id, district_name, priority) VALUES (?, ?, 3)').run(user.id, listId);
         if (user.is_editing) {
           db.prepare('UPDATE users SET step = 11, is_editing = 0 WHERE wa_id = ?').run(wa_id);
+          await checkMatches(user.id);
           return sendFrame11(wa_id, lang);
         }
         db.prepare('UPDATE users SET step = 10 WHERE wa_id = ?').run(wa_id);
@@ -365,8 +372,21 @@ async function sendFrame11(to, lang) {
   if (!user) return;
   const prefs = db.prepare('SELECT district_name FROM preferences WHERE user_id = ? ORDER BY priority').all(user.id);
   
-  // Check for existing matches to show a special badge
-  const matchCount = db.prepare('SELECT COUNT(*) as count FROM matches WHERE user_a_id = ? OR user_b_id = ?').get(user.id, user.id)?.count || 0;
+  // Real-time Match Calculation for a precise Dashboard count
+  const matches = db.prepare(`
+    SELECT DISTINCT u.id FROM matches m
+    JOIN users u ON (m.user_a_id = u.id OR m.user_b_id = u.id)
+    JOIN preferences p ON u.id = p.user_id
+    JOIN preferences p2 ON p2.user_id = ?
+    WHERE (m.user_a_id = ? OR m.user_b_id = ?) 
+    AND u.id != ?
+    AND u.cur_district = p2.district_name
+    AND p.district_name = ?
+    AND u.job_post = ?
+    AND u.consent = 1
+  `).all(user.id, user.id, user.id, user.id, user.cur_district, user.job_post);
+
+  const matchCount = matches.length;
   const matchBadge = matchCount > 0 ? `\n\n*${MESSAGES[lang].match_found} (${matchCount})*` : "";
 
   const labels = lang === 'hi' ? 
