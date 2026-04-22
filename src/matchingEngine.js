@@ -35,9 +35,9 @@ async function checkMatches(userId) {
 async function notifyMatch(userA, userB, rankA, rankB) {
   const getMsg = (lang, partner, theirRank) => {
     if (lang === 'hi') {
-      return `🎉 *म्यूचुअल मैच मिल गया!*\n\nहमें आपके लिए एक पार्टनर मिला है:\n• नाम: ${partner.name}\n• फोन: ${partner.wa_id}\n• पद / पदनाम: ${partner.job_post}\n• जिला / ब्लॉक: ${partner.cur_district} / ${partner.cur_block}\n• आपके जिले की प्राथमिकता: #${theirRank} पसंद\n\nअब आप उनसे सीधे संपर्क कर सकते हैं।`;
+      return `🎉 *म्यूचुअल मैच मिल गया!*\n\nहमें आपके लिए एक पार्टनर मिला है:\n• नाम: ${partner.name}\n• फोन: ${partner.wa_id}\n• पद / पदनाम: ${partner.job_post}\n• जिला: ${partner.cur_district}\n• ब्लॉक: ${partner.cur_block}\n• आपके जिले की प्राथमिकता: #${theirRank} पसंद\n\nअब आप उनसे सीधे संपर्क कर सकते हैं।`;
     }
-    return `🎉 *Mutual Match Found!*\n\nWe found a swap partner for you:\n• Name: ${partner.name}\n• Phone: ${partner.wa_id}\n• Job Post: ${partner.job_post}\n• District / Block: ${partner.cur_district} / ${partner.cur_block}\n• Preference priority of your district: #${theirRank} Choice\n\nYou can now contact them directly.`;
+    return `🎉 *Mutual Match Found!*\n\nWe found a swap partner for you:\n• Name: ${partner.name}\n• Phone: ${partner.wa_id}\n• Job Post: ${partner.job_post}\n• District: ${partner.cur_district}\n• Block: ${partner.cur_block}\n• Preference priority of your district: #${theirRank} Choice\n\nYou can now contact them directly.`;
   };
 
   await sendText(userA.wa_id, getMsg(userA.language, userB, rankB));
@@ -67,15 +67,16 @@ async function getUserMatches(userId, lang = 'en') {
   }
 
   const labels = lang === 'hi' ? 
-    { phone: 'फोन', post: 'पद / पदनाम', posting: 'तैनाती', their_level: 'आपके जिले की प्राथमिकता', choice: 'पसंद' } :
-    { phone: 'Phone', post: 'Job Post', posting: 'Posting', their_level: 'Preference priority of your district', choice: 'Choice' };
+    { phone: 'फोन', post: 'पद / पदनाम', dist: 'जिला', block: 'ब्लॉक', their_level: 'आपके जिले की प्राथमिकता', choice: 'पसंद' } :
+    { phone: 'Phone', post: 'Job Post', dist: 'District', block: 'Block', their_level: 'Preference priority of your district', choice: 'Choice' };
 
   let text = lang === 'hi' ? `🤝 *आपके म्यूचुअल मैच (${matches.length}):*\n\n` : `🤝 *Your Mutual Matches (${matches.length}):*\n\n`;
   matches.forEach((m, i) => {
     text += `${i + 1}. *${m.name}*\n`;
     text += `📞 ${labels.phone}: ${m.wa_id}\n`;
     text += `💼 ${labels.post}: ${m.job_post}\n`;
-    text += `📍 ${labels.posting}: ${m.cur_district} / ${m.cur_block}\n`;
+    text += `📍 ${labels.dist}: ${m.cur_district}\n`;
+    text += `🏢 ${labels.block}: ${m.cur_block}\n`;
     text += `⭐ ${labels.their_level}: #${m.their_priority} ${labels.choice}\n\n`;
   });
 
