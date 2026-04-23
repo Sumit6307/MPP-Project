@@ -271,8 +271,15 @@ async function handleIncomingMessage(wa_id, message) {
       return sendEditMenu(wa_id, lang);
 
     default:
-      const defaultMsg = lang === 'hi' ? "नमस्ते! अपनी प्रोफ़ाइल देखने के लिए VIEW PROFILE लिखें या शुरू से शुरू करने के लिए START OVER टाइप करें।" : "Welcome back! Type VIEW PROFILE or START OVER.";
-      return sendText(wa_id, defaultMsg);
+      const welcomeText = lang === 'hi' ? 
+        "नमस्ते! आपकी प्रोफ़ाइल पहले से बनी हुई है। आप क्या करना चाहेंगे?" : 
+        "Welcome back! Your profile is active. What would you like to do?";
+        
+      return sendButtons(wa_id, welcomeText, [
+        { id: 'view_matches', title: 'View Matches' },
+        { id: 'edit', title: 'Edit' },
+        { id: 'start_over', title: 'Start Over' }
+      ]);
   }
 }
 
