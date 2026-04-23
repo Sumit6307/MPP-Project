@@ -12,11 +12,22 @@ require.cache[require.resolve('../src/whatsappService')] = {
 async function appendData() {
   console.log('--- APPENDING MORE EDGE CASES (PRESERVING EXISTING DATA) ---');
 
+  const LOCATION_DATA = {
+    'Aligarh': ['Akrabad', 'Atrauli', 'Bijauli', 'Chandaus', 'Dhanipur', 'Gangiri', 'Gonda', 'Iglas', 'Jawan Sikanderpur', 'Khair', 'Lodha', 'Tappal'],
+    'Bulandshahr': ['Agauta', 'Anupshahr', 'Araniya', 'Bhawan Bahadur Nagar', 'Bulandshahr', 'Danpur', 'Dibai', 'Gulaothi', 'Jahangirabad', 'Khurja', 'Lakhaothi', 'Pahasu', 'Shikarpur', 'Sikandrabad', 'Syana', 'Unchagaon'],
+    'Gautam Buddha Nagar': ['Bisrakh', 'Dadri', 'Jewar'],
+    'Hapur': ['Dhaulana', 'Garh Mukteshwar', 'Hapur', 'Simbhawali'],
+    'Mathura': ['Baldeo', 'Chaumuha', 'Chhata', 'Farah', 'Govardhan', 'Mat', 'Mathura', 'Nandgaon', 'Nohjhil', 'Raya']
+  };
+
   function insertUser(phone, name, job, curDist, p1, p2, p3, consent = 1) {
+    const blocks = LOCATION_DATA[curDist] || ['Generic'];
+    const randomBlock = blocks[Math.floor(Math.random() * blocks.length)];
+
     db.prepare(`
       INSERT INTO users (wa_id, name, job_post, cur_district, cur_block, step, consent, pref_dist_1, pref_dist_2, pref_dist_3) 
-      VALUES (?, ?, ?, ?, 'TestBlock', 11, ?, ?, ?, ?)
-    `).run(phone, name, job, curDist, consent, p1 || null, p2 || null, p3 || null);
+      VALUES (?, ?, ?, ?, ?, 11, ?, ?, ?, ?)
+    `).run(phone, name, job, curDist, randomBlock, consent, p1 || null, p2 || null, p3 || null);
     
     const uId = db.prepare('SELECT id FROM users WHERE wa_id = ?').get(phone).id;
     
